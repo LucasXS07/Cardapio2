@@ -1,0 +1,259 @@
+<html><head><base href="https://websimcreationengine.com/cardapio-online-painel/admin.html/index.html">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cardápio Online</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+  }
+  .container {
+    width: 90%;
+    max-width: 800px;
+    margin: auto;
+    overflow: hidden;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 5px;
+  }
+  h1 {
+    color: #333;
+    text-align: center;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .menu-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    margin-right: 20px;
+    border-radius: 5px;
+  }
+  .item-details {
+    flex-grow: 1;
+  }
+  .item-name {
+    font-weight: bold;
+    font-size: 18px;
+  }
+  .item-price {
+    color: #4CAF50;
+    font-weight: bold;
+  }
+  .quantity-control {
+    display: flex;
+    align-items: center;
+  }
+  .quantity-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .quantity {
+    margin: 0 10px;
+  }
+  #orderSummary {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+  }
+  #sendOrderBtn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    margin-top: 20px;
+  }
+  #addressInput {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 5px;
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cardápio Online</h1>
+    <div id="menuItems">
+      <!-- Menu items will be dynamically added here -->
+    </div>
+    <div id="orderSummary">
+      <h2>Resumo do Pedido</h2>
+      <div id="orderItems"></div>
+      <p>Total: R$ <span id="orderTotal">0.00</span></p>
+      <input type="text" id="addressInput" placeholder="Digite seu endereço de entrega">
+      <button id="sendOrderBtn">Enviar Pedido</button>
+    </div>
+  </div>
+
+  <div id="addressModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <p>Por favor, insira seu endereço de entrega antes de enviar o pedido.</p>
+    </div>
+  </div>
+
+  <script>
+    // Get menu items from localStorage
+    const menuItems = JSON.parse(localStorage.getItem('menuItems')) || [
+      { name: "X-Burger", price: 15.00, image: "https://source.unsplash.com/random/80x80?burger" },
+      { name: "X-Salada", price: 17.00, image: "https://source.unsplash.com/random/80x80?salad-burger" },
+      { name: "X-Bacon", price: 18.00, image: "https://source.unsplash.com/random/80x80?bacon-burger" },
+      { name: "Batata Frita", price: 8.00, image: "https://source.unsplash.com/random/80x80?french-fries" },
+      { name: "Refrigerante", price: 5.00, image: "https://source.unsplash.com/random/80x80?soda" }
+    ];
+
+    const menuItemsContainer = document.getElementById('menuItems');
+    const orderItemsContainer = document.getElementById('orderItems');
+    const orderTotalElement = document.getElementById('orderTotal');
+    const sendOrderBtn = document.getElementById('sendOrderBtn');
+    const addressInput = document.getElementById('addressInput');
+    const addressModal = document.getElementById('addressModal');
+    const closeModal = document.querySelector('.close');
+
+    const order = {};
+
+    function renderMenu() {
+      menuItemsContainer.innerHTML = '';
+      menuItems.forEach((item, index) => {
+        const menuItem = document.createElement('div');
+        menuItem.classList.add('menu-item');
+        menuItem.innerHTML = `
+          <img src="${item.image}" alt="${item.name}">
+          <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            <div class="item-price">R$ ${item.price.toFixed(2)}</div>
+          </div>
+          <div class="quantity-control">
+            <button class="quantity-btn minus" data-index="${index}">-</button>
+            <span class="quantity">${order[index] || 0}</span>
+            <button class="quantity-btn plus" data-index="${index}">+</button>
+          </div>
+        `;
+        menuItemsContainer.appendChild(menuItem);
+      });
+    }
+
+    function updateOrder() {
+      orderItemsContainer.innerHTML = '';
+      let total = 0;
+      for (const [index, quantity] of Object.entries(order)) {
+        if (quantity > 0) {
+          const item = menuItems[index];
+          const itemTotal = item.price * quantity;
+          total += itemTotal;
+          orderItemsContainer.innerHTML += `
+            <p>${item.name} x ${quantity}: R$ ${itemTotal.toFixed(2)}</p>
+          `;
+        }
+      }
+      orderTotalElement.textContent = total.toFixed(2);
+    }
+
+    menuItemsContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('quantity-btn')) {
+        const index = e.target.dataset.index;
+        if (e.target.classList.contains('plus')) {
+          order[index] = (order[index] || 0) + 1;
+        } else if (e.target.classList.contains('minus')) {
+          order[index] = Math.max((order[index] || 0) - 1, 0);
+        }
+        renderMenu();
+        updateOrder();
+      }
+    });
+
+    sendOrderBtn.addEventListener('click', () => {
+      const address = addressInput.value.trim();
+      if (!address) {
+        addressModal.style.display = "block";
+        return;
+      }
+
+      let message = "Novo pedido:\n\n";
+      let total = 0;
+      for (const [index, quantity] of Object.entries(order)) {
+        if (quantity > 0) {
+          const item = menuItems[index];
+          const itemTotal = item.price * quantity;
+          total += itemTotal;
+          message += `${item.name} x ${quantity}: R$ ${itemTotal.toFixed(2)}\n`;
+        }
+      }
+      message += `\nTotal: R$ ${total.toFixed(2)}`;
+      message += `\n\nEndereço de entrega: ${address}`;
+
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/5511999999999?text=${encodedMessage}`, '_blank');
+    });
+
+    closeModal.addEventListener('click', () => {
+      addressModal.style.display = "none";
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target == addressModal) {
+        addressModal.style.display = "none";
+      }
+    });
+
+    // Initial render
+    renderMenu();
+    updateOrder();
+  </script>
+</body>
+</html>
